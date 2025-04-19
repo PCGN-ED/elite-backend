@@ -185,6 +185,21 @@ app.post('/api/commander/token', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/journal', authenticateToken, async (req, res) => {
+  try {
+    const { cmdr, system, station, entry } = req.body;
+
+    // Save to DB or log it
+    console.log(`[JOURNAL] ${cmdr} - ${entry.event} at ${system}/${station}`);
+    // Optionally store in DB if needed
+
+    res.status(200).json({ message: 'Journal received' });
+  } catch (err) {
+    console.error('[JOURNAL ERROR]', err);
+    res.status(500).json({ error: 'Failed to process journal' });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`API running on port ${port}`);
