@@ -178,8 +178,18 @@ app.post('/api/commander/token', authenticateToken, async (req, res) => {
   const commanderId = req.commander.commander_id;
 
   try {
-    const apiToken = uuidv4();
+    // Check if a token already exists
+    const existing = await pool.query(
+      'SELECT api_token FROM commanders WHERE id = $1',
+      [commanderId]
+    );
 
+    if (existing.rows[0]?.api_token) {
+      return res.json({ api_token: existing.rows[0].api_token });
+    }
+
+    // If not, generate a new one
+    const apiToken = uuidv4();
     await pool.query(
       'UPDATE commanders SET api_token = $1 WHERE id = $2',
       [apiToken, commanderId]
