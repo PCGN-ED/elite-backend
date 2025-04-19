@@ -60,6 +60,41 @@ app.get('/api/activity', async (req, res) => {
   }
 });
 
+const bcrypt = require('bcrypt');
+
+// Commander Registration
+app.post('/api/register', async (req, res) => {
+  const { username, email, password } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    // Check if email or username already exists
+    const existing = await pool.query('SELECT * FROM commanders WHERE email = $1 OR username = $2', [email, username]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'Commander already exists' });
+    }
+
+    // Hash the password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Insert into database
+    const result = await pool.query(
+      'INSERT INTO commanders (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, created_at',
+      [username, email, passwordHash]
+    );
+
+    res.status(201).json({ message: 'Commander registered', commander: result.rows[0] });
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+
 // Commander Login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
