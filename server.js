@@ -7,6 +7,7 @@ const pool = new Pool({
     rejectUnauthorized: false,
   },
 });
+const { v4: uuidv4 } = require('uuid');
 const express = require('express');
 const cors = require('cors');
 const app = express();
@@ -163,6 +164,24 @@ app.post('/api/login', async (req, res) => {
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+app.post('/api/commander/token', authenticateToken, async (req, res) => {
+  const commanderId = req.commander.commander_id;
+
+  try {
+    const apiToken = uuidv4();
+
+    await pool.query(
+      'UPDATE commanders SET api_token = $1 WHERE id = $2',
+      [apiToken, commanderId]
+    );
+
+    res.json({ api_token: apiToken });
+  } catch (err) {
+    console.error('Token generation error:', err);
+    res.status(500).json({ error: 'Failed to generate token' });
   }
 });
 
