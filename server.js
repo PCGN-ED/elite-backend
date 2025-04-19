@@ -1,5 +1,13 @@
 require('dotenv').config();
 const { Pool } = require('pg');
+const { v4: uuidv4 } = require('uuid');
+const express = require('express');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+
+const app = express();
+const port = process.env.PORT || 5000;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -7,24 +15,19 @@ const pool = new Pool({
     rejectUnauthorized: false,
   },
 });
-const { v4: uuidv4 } = require('uuid');
-const express = require('express');
-const cors = require('cors');
-const app = express();
-const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) return res.sendStatus(401);
 
   jwt.verify(token, process.env.JWT_SECRET, (err, commander) => {
     if (err) return res.sendStatus(403);
-    req.commander = commander; // Attach to request
+    req.commander = commander;
     next();
   });
 }
@@ -67,7 +70,6 @@ app.post('/api/activity', authenticateToken, async (req, res) => {
   }
 });
 
-
 app.get('/api/activity', authenticateToken, async (req, res) => {
   try {
     const commanderId = req.commander.commander_id;
@@ -82,10 +84,6 @@ app.get('/api/activity', authenticateToken, async (req, res) => {
   }
 });
 
-
-const bcrypt = require('bcrypt');
-
-// Commander Registration
 app.post('/api/register', async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -94,17 +92,14 @@ app.post('/api/register', async (req, res) => {
   }
 
   try {
-    // Check if email or username already exists
     const existing = await pool.query('SELECT * FROM commanders WHERE email = $1 OR username = $2', [email, username]);
     if (existing.rows.length > 0) {
       return res.status(409).json({ error: 'Commander already exists' });
     }
 
-    // Hash the password
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Insert into database
     const result = await pool.query(
       'INSERT INTO commanders (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, created_at',
       [username, email, passwordHash]
@@ -116,10 +111,6 @@ app.post('/api/register', async (req, res) => {
     res.status(500).json({ error: 'Registration failed' });
   }
 });
-
-
-// Commander Login
-const jwt = require('jsonwebtoken');
 
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
@@ -141,7 +132,6 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // 🔐 Generate JWT
     const token = jwt.sign(
       {
         commander_id: commander.id,
@@ -188,10 +178,12 @@ app.post('/api/commander/token', authenticateToken, async (req, res) => {
 app.post('/api/journal', authenticateToken, async (req, res) => {
   try {
     const { cmdr, system, station, entry } = req.body;
+    const commanderId = req.commander.commander_id;
 
-    // Save to DB or log it
-    console.log(`[JOURNAL] ${cmdr} - ${entry.event} at ${system}/${station}`);
-    // Optionally store in DB if needed
+    await pool.query(
+      'INSERT INTO journal_entries (commander_id, cmdr_name, system, station, event_data) VALUES ($1, $2, $3, $4, $5)',
+      [commanderId, cmdr, system, station, JSON.stringify(entry)]
+    );
 
     res.status(200).json({ message: 'Journal received' });
   } catch (err) {
@@ -199,7 +191,6 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to process journal' });
   }
 });
-
 
 app.listen(port, () => {
   console.log(`API running on port ${port}`);
