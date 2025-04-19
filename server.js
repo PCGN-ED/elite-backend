@@ -67,15 +67,20 @@ app.post('/api/activity', authenticateToken, async (req, res) => {
 });
 
 
-app.get('/api/activity', async (req, res) => {
+app.get('/api/activity', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM activities ORDER BY timestamp DESC');
+    const commanderId = req.commander.commander_id;
+    const result = await pool.query(
+      'SELECT * FROM activities WHERE commander_id = $1 ORDER BY timestamp DESC',
+      [commanderId]
+    );
     res.json(result.rows);
   } catch (err) {
     console.error('Query error:', err);
     res.status(500).json({ error: 'Failed to load activity' });
   }
 });
+
 
 const bcrypt = require('bcrypt');
 
