@@ -19,16 +19,33 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json());
 
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) return res.sendStatus(401);
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, commander) => {
-    if (err) return res.sendStatus(403);
-    req.commander = commander;
-    next();
+  // Try verifying as JWT first
+  jwt.verify(token, process.env.JWT_SECRET, async (err, commander) => {
+    if (!err) {
+      req.commander = commander;
+      return next();
+    }
+
+    // If JWT fails, try matching as API Token
+    try {
+      const result = await pool.query('SELECT * FROM commanders WHERE api_token = $1', [token]);
+      if (result.rows.length === 0) return res.sendStatus(403);
+
+      req.commander = {
+        commander_id: result.rows[0].id,
+        username: result.rows[0].username
+      };
+      next();
+    } catch (dbErr) {
+      console.error('API Token auth error:', dbErr);
+      res.sendStatus(500);
+    }
   });
 }
 
