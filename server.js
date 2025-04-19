@@ -60,6 +60,45 @@ app.get('/api/activity', async (req, res) => {
   }
 });
 
+// Commander Login
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Missing email or password' });
+  }
+
+  try {
+    // Check if user exists
+    const result = await pool.query('SELECT * FROM commanders WHERE email = $1', [email]);
+    const commander = result.rows[0];
+
+    if (!commander) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Compare password
+    const isValid = await bcrypt.compare(password, commander.password_hash);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Return success (token to come later)
+    res.status(200).json({
+      message: 'Login successful',
+      commander: {
+        id: commander.id,
+        username: commander.username,
+        email: commander.email,
+        created_at: commander.created_at,
+      },
+      token: 'mock-token-for-now'
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
 
 app.listen(port, () => {
   console.log(`API running on port ${port}`);
