@@ -270,8 +270,8 @@ switch (eventType) {
         if (Array.isArray(entry.Contributions)) {
           for (const item of entry.Contributions) {
             await pool.query(
-              'INSERT INTO colonization_support (commander_id, system, station, event_type, commodity, quantity, credits, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7, now())',
-              [commanderId, system, station, 'ColonisationContribution', item.Name_Localised || item.Name, item.Amount || 0, 0]
+              'INSERT INTO colonization_support (commander_id, system, station, market_id, event_type, commodity, quantity, credits, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())',
+              [commanderId, system, station, entry.MarketID || null, 'ColonisationContribution', item.Name_Localised || item.Name, item.Amount || 0, 0]
             );
           }
         }
