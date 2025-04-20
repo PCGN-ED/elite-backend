@@ -229,7 +229,7 @@ switch (eventType) {
     faction.Allegiance || null,
     faction.Influence || 0,
     faction.FactionState || null,
-    faction.Name === playerFaction,
+    faction.Name?.toLowerCase().trim() === playerFaction?.toLowerCase().trim(),
     faction.Name === controllingFaction
   ]
 );
