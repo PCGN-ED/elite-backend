@@ -216,18 +216,20 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
         if (Array.isArray(entry.Factions)) {
           for (const faction of entry.Factions) {
             await pool.query(
-              `INSERT INTO faction_stats (system, faction_name, allegiance, influence, state, updated_at)
-               VALUES ($1, $2, $3, $4, $5, now())
-               ON CONFLICT (system, faction_name) DO UPDATE
-               SET allegiance = $3, influence = $4, state = $5, updated_at = now()`,
-              [
-                system,
-                faction.Name,
-                faction.Allegiance || null,
-                faction.Influence || 0,
-                faction.FactionState || null
-              ]
-            );
+  `INSERT INTO faction_stats (system, faction_name, allegiance, influence, state, is_player, is_controlling, updated_at)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+   ON CONFLICT (system, faction_name) DO UPDATE
+   SET allegiance = $3, influence = $4, state = $5, is_player = $6, is_controlling = $7, updated_at = now()`,
+  [
+    system,
+    faction.Name,
+    faction.Allegiance || null,
+    faction.Influence || 0,
+    faction.FactionState || null,
+    faction.PlayerFaction || false,
+    entry.ControlledFaction === faction.Name
+  ]
+);
           }
         }
         break;
