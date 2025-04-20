@@ -252,11 +252,29 @@ switch (eventType) {
         break;
 
       case 'MarketSell':
-      case 'BuyCommodity':
-        await pool.query(
-          'INSERT INTO colonization_support (commander_id, system, station, event_type, commodity, quantity, credits, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7, now())',
-          [commanderId, system, station, eventType, entry.Type || entry.Commodity || null, entry.Count || 0, entry.TotalSale || entry.PricePaid || 0]
-        );
+      case 'BuyCommodity': {
+        const commodity = entry.Type || entry.Commodity || entry.Fuel || null;
+        const quantity = entry.Count || entry.Quantity || 0;
+        const credits = entry.TotalSale || entry.PricePaid || 0;
+
+        if (commodity && quantity > 0) {
+          await pool.query(
+            'INSERT INTO colonization_support (commander_id, system, station, event_type, commodity, quantity, credits, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7, now())',
+            [commanderId, system, station, eventType, commodity, quantity, credits]
+          );
+        }
+        break;
+      }
+
+      case 'ColonisationContribution':
+        if (Array.isArray(entry.Contributions)) {
+          for (const item of entry.Contributions) {
+            await pool.query(
+              'INSERT INTO colonization_support (commander_id, system, station, event_type, commodity, quantity, credits, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7, now())',
+              [commanderId, system, station, 'ColonisationContribution', item.Name_Localised || item.Name, item.Amount || 0, 0]
+            );
+          }
+        }
         break;
 
       case 'ColonisationConstructionDepot':
@@ -265,7 +283,6 @@ switch (eventType) {
           [entry.MarketID, system, station, entry.ConstructionProgress || 0, entry]
         );
 
-        // Store each required commodity
         if (Array.isArray(entry.ResourcesRequired)) {
           for (const resource of entry.ResourcesRequired) {
             await pool.query(
