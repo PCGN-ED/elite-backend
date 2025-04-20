@@ -239,6 +239,16 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
           'INSERT INTO colonization_depots (market_id, system, station, progress, raw_data, updated_at) VALUES ($1, $2, $3, $4, $5, now()) ON CONFLICT (market_id) DO UPDATE SET progress = $4, raw_data = $5, updated_at = now()',
           [entry.MarketID, system, station, entry.ConstructionProgress || 0, entry]
         );
+
+        // Store each required commodity
+        if (Array.isArray(entry.ResourcesRequired)) {
+          for (const resource of entry.ResourcesRequired) {
+            await pool.query(
+              'INSERT INTO depot_commodities (market_id, commodity, required, provided, payment, updated_at) VALUES ($1, $2, $3, $4, $5, now()) ON CONFLICT (market_id, commodity) DO UPDATE SET required = $3, provided = $4, payment = $5, updated_at = now()',
+              [entry.MarketID, resource.Name_Localised || resource.Name, resource.RequiredAmount, resource.ProvidedAmount, resource.Payment || 0]
+            );
+          }
+        }
         break;
     }
 
