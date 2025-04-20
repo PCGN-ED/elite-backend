@@ -221,7 +221,6 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
                ON CONFLICT (commander_id, system, faction_name) DO UPDATE
                SET allegiance = $4, influence = $5, state = $6, updated_at = now()`,
               [
-                commanderId,
                 system,
                 faction.Name,
                 faction.Allegiance || null,
