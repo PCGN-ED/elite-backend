@@ -74,7 +74,7 @@ app.post('/api/activity', authenticateToken, async (req, res) => {
     const commanderId = req.commander.commander_id;
 
     await pool.query(
-      'INSERT INTO activities (type, details, timestamp, commander_id) VALUES ($1, $2, $3, $4)',
+      'INSERT INTO activities (type, commodity, quantity, credits, timestamp, commander_id) VALUES ($1, $2, $3, $4, $5, $6)',
       [type, details, timestamp, commanderId]
     );
 
@@ -209,33 +209,34 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
     );
 
     const eventType = entry.event;
-
     const controllingFaction = entry.SystemFaction?.Name || null;
-const playerFaction = entry.PlayerFaction?.Name || null;
+    const playerFaction = entry.PlayerFaction?.Name || null;
 
-switch (eventType) {
+    switch (eventType) {
       case 'FSDJump':
-      case 'Location':
+      case 'Location': {
         if (Array.isArray(entry.Factions)) {
           for (const faction of entry.Factions) {
             await pool.query(
-  `INSERT INTO faction_stats (system, faction_name, allegiance, influence, state, is_player, is_controlling, updated_at)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, now())
-   ON CONFLICT (system, faction_name) DO UPDATE
-   SET allegiance = $3, influence = $4, state = $5, is_player = $6, is_controlling = $7, updated_at = now()`,
-  [
-    system,
-    faction.Name,
-    faction.Allegiance || null,
-    faction.Influence || 0,
-    faction.FactionState || null,
-    faction.SquadronFaction === true,
-    faction.Name?.toLowerCase().trim() === controllingFaction?.toLowerCase().trim()
-  ]
-);
+              `INSERT INTO faction_stats (system, faction_name, allegiance, influence, state, is_player, is_controlling, updated_at)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+               ON CONFLICT (system, faction_name) DO UPDATE
+               SET allegiance = $3, influence = $4, state = $5, is_player = $6, is_controlling = $7, updated_at = now()`,
+              [
+                system,
+                faction.Name,
+                faction.Allegiance || null,
+                faction.Influence || 0,
+                faction.FactionState || null,
+                faction.SquadronFaction === true,
+                faction.Name?.toLowerCase().trim() === controllingFaction?.toLowerCase().trim()
+              ]
+            );
           }
         }
         break;
+      }
+
       case 'MissionCompleted':
         await pool.query(
           'INSERT INTO bgs_contributions (commander_id, system, faction, reward, timestamp) VALUES ($1, $2, $3, $4, now())',
@@ -251,22 +252,35 @@ switch (eventType) {
         );
         break;
 
-      case 'MarketSell':
-      case 'BuyCommodity': {
+      case 'MarketSell': {
         const commodity = entry.Type || entry.Commodity || entry.Fuel || null;
         const quantity = entry.Count || entry.Quantity || 0;
-        const credits = entry.TotalSale || entry.PricePaid || 0;
+        const credits = entry.TotalSale || entry.SellPrice * quantity || 0;
 
         if (commodity && quantity > 0) {
           await pool.query(
-            'INSERT INTO colonization_support (commander_id, system, station, event_type, commodity, quantity, credits, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7, now())',
-            [commanderId, system, station, eventType, commodity, quantity, credits]
+            'INSERT INTO activities (type, commodity, quantity, credits, timestamp, commander_id) VALUES ($1, $2, $3, $4, now(), $5)',
+            ['trade', commodity, quantity, credits, commanderId]
           );
         }
         break;
       }
 
-      case 'ColonisationContribution':
+      case 'BuyCommodity': {
+        const commodity = entry.Type || entry.Commodity || entry.Fuel || null;
+        const quantity = entry.Count || entry.Quantity || 0;
+        const credits = entry.BuyPrice * quantity || 0;
+
+        if (commodity && quantity > 0) {
+          await pool.query(
+            'INSERT INTO activities (type, commodity, quantity, credits, timestamp, commander_id) VALUES ($1, $2, $3, $4, now(), $5)',
+            ['trade', commodity, quantity, credits, commanderId]
+          );
+        }
+        break;
+      }
+
+      case 'ColonisationContribution': {
         if (Array.isArray(entry.Contributions)) {
           for (const item of entry.Contributions) {
             await pool.query(
@@ -276,8 +290,9 @@ switch (eventType) {
           }
         }
         break;
+      }
 
-      case 'ColonisationConstructionDepot':
+      case 'ColonisationConstructionDepot': {
         await pool.query(
           'INSERT INTO colonization_depots (market_id, system, station, progress, raw_data, updated_at) VALUES ($1, $2, $3, $4, $5, now()) ON CONFLICT (market_id) DO UPDATE SET progress = $4, raw_data = $5, updated_at = now()',
           [entry.MarketID, system, station, entry.ConstructionProgress || 0, entry]
@@ -292,6 +307,7 @@ switch (eventType) {
           }
         }
         break;
+      }
     }
 
     res.status(200).json({ message: 'Journal received' });
