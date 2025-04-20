@@ -211,6 +211,27 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
     const eventType = entry.event;
 
     switch (eventType) {
+      case 'FSDJump':
+      case 'Location':
+        if (Array.isArray(entry.Factions)) {
+          for (const faction of entry.Factions) {
+            await pool.query(
+              `INSERT INTO faction_stats (system, faction_name, allegiance, influence, state, updated_at)
+               VALUES ($1, $2, $3, $4, $5, $6, now())
+               ON CONFLICT (commander_id, system, faction_name) DO UPDATE
+               SET allegiance = $4, influence = $5, state = $6, updated_at = now()`,
+              [
+                commanderId,
+                system,
+                faction.Name,
+                faction.Allegiance || null,
+                faction.Influence || 0,
+                faction.FactionState || null
+              ]
+            );
+          }
+        }
+        break;
       case 'MissionCompleted':
         await pool.query(
           'INSERT INTO bgs_contributions (commander_id, system, faction, reward, timestamp) VALUES ($1, $2, $3, $4, now())',
