@@ -210,7 +210,10 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
 
     const eventType = entry.event;
 
-    switch (eventType) {
+    const controllingFaction = entry.SystemFaction?.Name || null;
+const playerFaction = entry.PlayerFaction?.Name || null;
+
+switch (eventType) {
       case 'FSDJump':
       case 'Location':
         if (Array.isArray(entry.Factions)) {
@@ -226,8 +229,8 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
     faction.Allegiance || null,
     faction.Influence || 0,
     faction.FactionState || null,
-    faction.PlayerFaction || false,
-    entry.ControlledFaction === faction.Name
+    faction.Name === playerFaction,
+    faction.Name === controllingFaction
   ]
 );
           }
