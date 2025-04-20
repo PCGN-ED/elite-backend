@@ -25,14 +25,12 @@ async function authenticateToken(req, res, next) {
 
   if (!token) return res.sendStatus(401);
 
-  // Try verifying as JWT first
   jwt.verify(token, process.env.JWT_SECRET, async (err, commander) => {
     if (!err) {
       req.commander = commander;
       return next();
     }
 
-    // If JWT fails, try matching as API Token
     try {
       const result = await pool.query('SELECT * FROM commanders WHERE api_token = $1', [token]);
       if (result.rows.length === 0) return res.sendStatus(403);
@@ -178,7 +176,6 @@ app.post('/api/commander/token', authenticateToken, async (req, res) => {
   const commanderId = req.commander.commander_id;
 
   try {
-    // Check if a token already exists
     const existing = await pool.query(
       'SELECT api_token FROM commanders WHERE id = $1',
       [commanderId]
@@ -188,7 +185,6 @@ app.post('/api/commander/token', authenticateToken, async (req, res) => {
       return res.json({ api_token: existing.rows[0].api_token });
     }
 
-    // If not, generate a new one
     const apiToken = uuidv4();
     await pool.query(
       'UPDATE commanders SET api_token = $1 WHERE id = $2',
@@ -212,12 +208,38 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
       [commanderId, cmdr, system, station, JSON.stringify(entry)]
     );
 
+    const eventType = entry.event;
+
+    switch (eventType) {
+      case 'MissionCompleted':
+        await pool.query(
+          'INSERT INTO bgs_contributions (commander_id, system, faction, reward, timestamp) VALUES ($1, $2, $3, $4, now())',
+          [commanderId, system, entry.Faction || null, entry.Reward || 0]
+        );
+        break;
+
+      case 'Powerplay':
+      case 'PowerplayCollect':
+        await pool.query(
+          'INSERT INTO powerplay_logs (commander_id, power, action, amount, timestamp) VALUES ($1, $2, $3, $4, now())',
+          [commanderId, entry.Power || null, eventType, entry.Amount || 0]
+        );
+        break;
+
+      case 'MarketSell':
+      case 'BuyCommodity':
+        await pool.query(
+          'INSERT INTO colonization_support (commander_id, system, station, event_type, commodity, quantity, credits, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7, now())',
+          [commanderId, system, station, eventType, entry.Type || entry.Commodity || null, entry.Count || 0, entry.TotalSale || entry.PricePaid || 0]
+        );
+        break;
+    }
+
     res.status(200).json({ message: 'Journal received' });
   } catch (err) {
     console.error('[JOURNAL ERROR]', err.message, err.stack);
     res.status(500).json({ error: 'Failed to process journal', details: err.message });
   }
-  
 });
 
 app.listen(port, () => {
