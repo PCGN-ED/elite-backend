@@ -214,9 +214,10 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
 
     res.status(200).json({ message: 'Journal received' });
   } catch (err) {
-    console.error('[JOURNAL ERROR]', err);
-    res.status(500).json({ error: 'Failed to process journal' });
+    console.error('[JOURNAL ERROR]', err.message, err.stack);
+    res.status(500).json({ error: 'Failed to process journal', details: err.message });
   }
+  
 });
 
 app.listen(port, () => {
