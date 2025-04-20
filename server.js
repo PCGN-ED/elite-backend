@@ -233,6 +233,13 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
           [commanderId, system, station, eventType, entry.Type || entry.Commodity || null, entry.Count || 0, entry.TotalSale || entry.PricePaid || 0]
         );
         break;
+
+      case 'ColonisationConstructionDepot':
+        await pool.query(
+          'INSERT INTO colonization_depots (market_id, system, station, progress, raw_data, updated_at) VALUES ($1, $2, $3, $4, $5, now()) ON CONFLICT (market_id) DO UPDATE SET progress = $4, raw_data = $5, updated_at = now()',
+          [entry.MarketID, system, station, entry.ConstructionProgress || 0, entry]
+        );
+        break;
     }
 
     res.status(200).json({ message: 'Journal received' });
