@@ -217,9 +217,9 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
           for (const faction of entry.Factions) {
             await pool.query(
               `INSERT INTO faction_stats (system, faction_name, allegiance, influence, state, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, now())
-               ON CONFLICT (commander_id, system, faction_name) DO UPDATE
-               SET allegiance = $4, influence = $5, state = $6, updated_at = now()`,
+               VALUES ($1, $2, $3, $4, $5, now())
+               ON CONFLICT (system, faction_name) DO UPDATE
+               SET allegiance = $3, influence = $4, state = $5, updated_at = now()`,
               [
                 system,
                 faction.Name,
