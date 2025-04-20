@@ -266,7 +266,7 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
         break;
       }
 
-      case 'BuyCommodity': {
+      case 'MarketBuy': {
         const commodity = entry.Type || entry.Commodity || entry.Fuel || null;
         const quantity = entry.Count || entry.Quantity || 0;
         const credits = entry.BuyPrice * quantity || 0;
