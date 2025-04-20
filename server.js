@@ -229,8 +229,8 @@ switch (eventType) {
     faction.Allegiance || null,
     faction.Influence || 0,
     faction.FactionState || null,
-    faction.Name?.toLowerCase().trim() === playerFaction?.toLowerCase().trim(),
-    faction.Name === controllingFaction
+    faction.SquadronFaction === true,
+    faction.Name?.toLowerCase().trim() === controllingFaction?.toLowerCase().trim()
   ]
 );
           }
