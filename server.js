@@ -213,6 +213,25 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
     const playerFaction = entry.PlayerFaction?.Name || null;
 
     switch (eventType) {
+      case 'Rank': {
+        await pool.query(
+          `UPDATE commanders SET 
+            rank_combat = $1,
+            rank_trade = $2,
+            rank_explore = $3,
+            rank_cqc = $4,
+            last_updated = now()
+          WHERE id = $5`,
+          [
+            entry.Combat ?? null,
+            entry.Trade ?? null,
+            entry.Explore ?? null,
+            entry.CQC ?? null,
+            commanderId
+          ]
+        );
+        break;
+      }
       case 'LoadGame': {
         const ranks = entry.Rank || {};
         const credits = entry.Credits || 0;
