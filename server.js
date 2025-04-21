@@ -213,6 +213,29 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
     const playerFaction = entry.PlayerFaction?.Name || null;
 
     switch (eventType) {
+      case 'LoadGame': {
+        const ranks = entry.Rank || {};
+        const credits = entry.Credits || 0;
+        await pool.query(
+          `UPDATE commanders SET 
+            credits = $1,
+            rank_combat = $2,
+            rank_trade = $3,
+            rank_explore = $4,
+            rank_cqc = $5,
+            last_updated = now()
+          WHERE id = $6`,
+          [
+            credits,
+            ranks.Combat ?? null,
+            ranks.Trade ?? null,
+            ranks.Explore ?? null,
+            ranks.CQC ?? null,
+            commanderId
+          ]
+        );
+        break;
+      }
       case 'FSDJump':
       case 'Location': {
         if (Array.isArray(entry.Factions)) {
