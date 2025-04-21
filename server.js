@@ -360,6 +360,22 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/colonization', authenticateToken, async (req, res) => {
+  try {
+    const commanderId = req.commander.commander_id;
+
+    const result = await pool.query(
+      'SELECT system, station, commodity, quantity, credits, timestamp FROM colonization_support WHERE commander_id = $1 ORDER BY timestamp DESC',
+      [commanderId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Colonization fetch error:', err);
+    res.status(500).json({ error: 'Failed to load colonization data' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`API running on port ${port}`);
 });
