@@ -239,8 +239,8 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
 
       case 'MissionCompleted':
         await pool.query(
-          'INSERT INTO bgs_contributions (commander_id, system, faction, reward, timestamp) VALUES ($1, $2, $3, $4, now())',
-          [commanderId, system, entry.Faction || null, entry.Reward || 0]
+          'INSERT INTO bgs_contributions (commander_id, system, faction, localised_name, reward, timestamp) VALUES ($1, $2, $3, $4, $5, now())',
+          [commanderId, system, entry.Faction || null, entry.LocalisedName || null, entry.Reward || 0]
         );
         break;
 
