@@ -259,9 +259,9 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
 
         if (commodity && quantity > 0) {
           await pool.query(
-            'INSERT INTO activities (type, commodity, quantity, credits, timestamp, commander_id) VALUES ($1, $2, $3, $4, now(), $5)',
+            'INSERT INTO activities (type, commodity, quantity, credits, market_id, timestamp, commander_id) VALUES ($1, $2, $3, $4, $5, now(), $6)',
             ['trade-sell', commodity, quantity, credits, entry.MarketID || null, commanderId]
-          );
+          );          
         }
         break;
       }
