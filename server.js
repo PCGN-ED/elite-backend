@@ -376,6 +376,22 @@ app.get('/api/colonization', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/colonization/requirements', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT market_id, commodity, required, provided
+       FROM depot_commodities
+       WHERE provided < required
+       ORDER BY market_id, commodity`
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Requirement fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch requirements' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`API running on port ${port}`);
 });
