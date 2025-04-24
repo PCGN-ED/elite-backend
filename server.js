@@ -153,7 +153,7 @@ app.post('/api/login', async (req, res) => {
         username: commander.username
       },
       process.env.JWT_SECRET,
-      { expiresIn: '12h' }
+      { expiresIn: '30d' }
     );
 
     res.status(200).json({
