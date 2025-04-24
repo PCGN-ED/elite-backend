@@ -363,9 +363,11 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
 app.get('/api/colonization', authenticateToken, async (req, res) => {
   try {
     const commanderId = req.commander.commander_id;
-
     const result = await pool.query(
-      'SELECT system, station, commodity, quantity, credits, timestamp FROM colonization_support WHERE commander_id = $1 ORDER BY timestamp DESC',
+      `SELECT system, station, commodity, quantity, credits, timestamp, market_id
+       FROM colonization_support
+       WHERE commander_id = $1
+       ORDER BY timestamp DESC`,
       [commanderId]
     );
 
