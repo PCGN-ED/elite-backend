@@ -310,13 +310,51 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
         );
         break;
 
-      case 'Powerplay':
-      case 'PowerplayCollect':
-        await pool.query(
-          'INSERT INTO powerplay_logs (commander_id, power, action, amount, timestamp) VALUES ($1, $2, $3, $4, now())',
-          [commanderId, entry.Power || null, eventType, entry.Amount || 0]
-        );
-        break;
+        case 'PowerplayMerits': {
+          // Update commanders table
+          await pool.query(
+            `UPDATE commanders 
+             SET power_faction = $1, power_merits = $2
+             WHERE id = $3`,
+            [entry.Power || null, entry.TotalMerits || 0, commanderId]
+          );
+        
+          // Still log it optionally
+          await pool.query(
+            'INSERT INTO powerplay_logs (commander_id, power, action, amount, merits_gained, total_merits, timestamp) VALUES ($1, $2, $3, $4, $5, $6, now())',
+            [
+              commanderId,
+              entry.Power || null,
+              'PowerplayMerits',
+              entry.MeritsGained || 0,
+              entry.MeritsGained || 0,
+              entry.TotalMerits || 0
+            ]
+          );
+          break;
+        }
+        
+        case 'PowerplayRank': {
+          await pool.query(
+            `UPDATE commanders 
+             SET power_faction = $1, power_rank = $2
+             WHERE id = $3`,
+            [entry.Power || null, entry.Rank || 0, commanderId]
+          );
+        
+          // Still log it optionally
+          await pool.query(
+            'INSERT INTO powerplay_logs (commander_id, power, action, power_rank, timestamp) VALUES ($1, $2, $3, $4, now())',
+            [
+              commanderId,
+              entry.Power || null,
+              'PowerplayRank',
+              entry.Rank || 0
+            ]
+          );
+          break;
+        }
+        
 
       case 'MarketSell': {
         const commodity = entry.Type || entry.Commodity || entry.Fuel || null;
