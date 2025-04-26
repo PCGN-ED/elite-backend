@@ -255,8 +255,8 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
         );
         break;
       }
-      case 'FSDJump':
-      case 'Location': {
+      case 'FSDJump': {
+        // Existing Faction Update Logic
         if (Array.isArray(entry.Factions)) {
           for (const faction of entry.Factions) {
             await pool.query(
@@ -276,6 +276,30 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
             );
           }
         }
+    
+        // NEW: Insert travel log
+        const starClass = entry.StarClass || null;
+        await pool.query(
+          'INSERT INTO travel_logs (commander_id, event_type, system_name, star_class, station_name, timestamp) VALUES ($1, $2, $3, $4, NULL, now())',
+          [commanderId, 'FSDJump', system, starClass]
+        );
+        break;
+      }
+    
+      case 'Location': {
+        // No factions here but log the location
+        await pool.query(
+          'INSERT INTO travel_logs (commander_id, event_type, system_name, star_class, station_name, timestamp) VALUES ($1, $2, $3, NULL, NULL, now())',
+          [commanderId, 'Location', system]
+        );
+        break;
+      }
+    
+      case 'Docked': {
+        await pool.query(
+          'INSERT INTO travel_logs (commander_id, event_type, system_name, star_class, station_name, timestamp) VALUES ($1, $2, $3, NULL, $4, now())',
+          [commanderId, 'Docked', system, station]
+        );
         break;
       }
 
