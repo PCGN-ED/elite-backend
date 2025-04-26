@@ -351,14 +351,16 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
         const pilotName = entry.PilotName_Localised || entry.PilotName || 'Unknown';
         const shipType = entry.Target_Localised || entry.Target || 'Unknown Ship';
         const victimFaction = entry.VictimFaction || 'Unknown Faction';
+        const rewardFaction = Array.isArray(entry.Rewards) && entry.Rewards.length > 0 ? entry.Rewards[0].Faction : 'Unknown';
         const totalReward = entry.TotalReward || 0;
       
         await pool.query(
-          'INSERT INTO combat_logs (commander_id, pilot_name, ship_type, victim_faction, total_reward, timestamp) VALUES ($1, $2, $3, $4, $5, now())',
-          [commanderId, pilotName, shipType, victimFaction, totalReward]
+          'INSERT INTO combat_logs (commander_id, pilot_name, ship_type, victim_faction, reward_faction, total_reward, timestamp) VALUES ($1, $2, $3, $4, $5, $6, now())',
+          [commanderId, pilotName, shipType, victimFaction, rewardFaction, totalReward]
         );
         break;
       }
+      
     
       case 'ColonisationContribution': {
         if (Array.isArray(entry.Contributions)) {
