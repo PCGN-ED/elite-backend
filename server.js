@@ -429,7 +429,7 @@ app.get('/api/colonization', authenticateToken, async (req, res) => {
        FROM 
          colonization_support cs
        JOIN 
-         colonization_depot cd
+         colonization_depots cd
        ON 
          cs.market_id = cd.market_id
        WHERE 
