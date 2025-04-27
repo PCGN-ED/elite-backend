@@ -318,19 +318,6 @@ app.post('/api/journal', authenticateToken, async (req, res) => {
              WHERE id = $3`,
             [entry.Power || null, entry.TotalMerits || 0, commanderId]
           );
-        
-          // Still log it optionally
-          await pool.query(
-            'INSERT INTO powerplay_logs (commander_id, power, action, amount, merits_gained, total_merits, timestamp) VALUES ($1, $2, $3, $4, $5, $6, now())',
-            [
-              commanderId,
-              entry.Power || null,
-              'PowerplayMerits',
-              entry.MeritsGained || 0,
-              entry.MeritsGained || 0,
-              entry.TotalMerits || 0
-            ]
-          );
           break;
         }
         
