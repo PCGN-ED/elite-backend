@@ -417,10 +417,25 @@ app.get('/api/colonization', authenticateToken, async (req, res) => {
   try {
     const commanderId = req.commander.commander_id;
     const result = await pool.query(
-      `SELECT system, station, commodity, quantity, credits, timestamp, market_id
-       FROM colonization_support
-       WHERE commander_id = $1
-       ORDER BY timestamp DESC`,
+      `SELECT 
+         cs.system, 
+         cs.station, 
+         cs.commodity, 
+         cs.quantity, 
+         cs.credits, 
+         cs.timestamp, 
+         cs.market_id, 
+         cd.progress
+       FROM 
+         colonization_support cs
+       JOIN 
+         colonization_depot cd
+       ON 
+         cs.market_id = cd.market_id
+       WHERE 
+         cs.commander_id = $1
+       ORDER BY 
+         cs.timestamp DESC`,
       [commanderId]
     );
 
@@ -430,6 +445,7 @@ app.get('/api/colonization', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to load colonization data' });
   }
 });
+
 
 app.get('/api/colonization/requirements', async (req, res) => {
   try {
